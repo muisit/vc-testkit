@@ -11,16 +11,26 @@ export async function registerIssuer(url:string, secret:string, data:string)
     debug("fetching");
 
     const result = await fetch(
-        url,
+        url + '/api/issuers',
         {
-            method: 'POST',
+            method: 'PUT',
             headers: {
                 'Content-type': 'application/json',
                 'Authorization': 'Bearer ' + secret
             },
             body: content
         }
-    ).then((r) => r.json()).catch((e) => {console.error(e);});
-    debug("returning ", result);
-    return result;
+    );
+    if (result.status != 200) {
+        debug(result);
+        return {
+            status: result.status,
+            statusText: result.statusText,
+            content: await result.text()
+        };
+    }
+    else {
+        const json = await result.json();
+        return json;
+    }
 }

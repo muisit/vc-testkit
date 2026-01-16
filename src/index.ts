@@ -13,6 +13,8 @@ import { listIdentifiers } from './identifiers/listIdentifiers';
 import { deleteCredential } from './credential/deleteCredential';
 import { listCredentials } from './credential/listCredential';
 import { registerCredential } from './credential/registerCredential';
+import { deleteIssuer } from './issuer/deleteIssuer';
+import { listIssuers } from './issuer/listIssuers';
 
 function printHelp()
 {
@@ -24,9 +26,11 @@ function printHelp()
   console.log('  create:key [-t <type>]                                   - create and output a new key of the indicated type');
   console.log('  delete:credential -i <identifier> -u <url> -s <secret>   - remove the given credential using the Management API');
   console.log('  delete:identifier -i <identifier> -u <url> -s <secret>   - remove the given identifier using the Management API');
+  console.log('  delete:issuer -i <identifier> -u <url> -s <secret>       - remove the given issuer using the Management API');
   console.log('  expand -d <data file>                                    - read a JWT token and expand it to a JSON structure');
   console.log('  list:credential -u <url> -s <secret>                     - list credentials using the Management API');
   console.log('  list:identifier -u <url> -s <secret>                     - list identifiers using the Management API');
+  console.log('  list:issuer -u <url> -s <secret>                         - list issuers using the Management API');
   console.log('  parse:authrequest -d <data file>                         - parse the authorization request using @openid4vc/openid4vp');
   console.log('  register:as -d <data file> -u <url> -s <secret>          - register an AS on the eduID proxy AS');
   console.log('  register:credential -d <data file> -u <url> -s <secret>  - register a new credential on the Management API');
@@ -85,11 +89,17 @@ async function main()
         case 'delete:identifier':
             output = await deleteIdentifier('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.identifier ?? ''));
             break;
+        case 'delete:issuer':
+            output = await deleteIssuer('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.identifier ?? ''));
+            break;
         case 'list:credential':
             output = await listCredentials('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''));
             break;
         case 'list:identifier':
             output = await listIdentifiers('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''));
+            break;
+        case 'list:issuer':
+            output = await listIssuers('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''));
             break;
         case 'register:as':
             output = await registerAS('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.data ?? ''));

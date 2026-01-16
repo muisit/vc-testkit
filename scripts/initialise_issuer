@@ -1,27 +1,32 @@
 #!/bin/bash
 
 source .env
-ISSUER_FILE=issuer.data.json.$$
-
-issuer.name = data.name;
-    issuer.did = data.did;
-    issuer.baseUrl = data.baseUrl;
-    issuer.adminToken = data.adminToken;
-    issuer.authorizationEndpoint = data.authorizationEndpoint;
-    issuer.tokenEndpoint = data.tokenEndpoint;
-    issuer.clientId = data.clientId;
-    issuer.clientSecret = data.clientSecret;
-    if (data.metadata) {
-        issuer.metadata = JSON.stringify(data.metadata);
-    }
-    if (data.statusLists) {
-        issuer.statuslists = JSON.stringify(data.statusLists);
-    }
+_FILE=test.data.json.$$
     
 echo '{
+  "name": "test",
+  "did": "secp256r1",
+  "baseUrl": "https://agent.dev.eduwallet.nl/test",
+  "adminToken": "TG6ZOFzqsY5QbRES76YamsK9wBxvqBbm",
+  "metadata": {
+    "display": [{
+      "name": "GenericIssuer",
+      "description": "GenericIssuer",
+      "logo": {
+        "uri": "https://example.com/logo.png",
+        "alt_text": "Alt text"
+      }
+    }],
+    "credential_configurations_supported": {
+      "GenericCredential": {
+        "format": "jwt_vc_json",
+        "extends": "GenericCredential_JWT"
+      }
+    }
+  }
+}' > $_FILE
+FNAME=`realpath $_FILE`
 
-}' > $ISSUER_FILE
+yarn --cwd .. do register:issuer -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME
 
-yarn --cwd .. do register:issuer -u $MANAGER_API -s $MANAGER_TOKEN -d $ISSUER_FILE
-
-rm $ISSUER_FILE
+rm $_FILE

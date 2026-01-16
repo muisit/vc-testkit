@@ -1,0 +1,6 @@
+#!/bin/bash
+
+source .env
+yarn --cwd .. do list:issuer -u $MANAGER_API -s $MANAGER_TOKEN
+
+

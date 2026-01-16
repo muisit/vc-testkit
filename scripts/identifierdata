@@ -1,6 +1,0 @@
-{
-  "did": "does not matter",
-  "provider": "did:jwk",
-  "alias": "testdid",
-  "keytype": "secp256r1"
-}
