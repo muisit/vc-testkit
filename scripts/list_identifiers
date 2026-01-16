@@ -1,0 +1,6 @@
+#!/bin/bash
+
+source .env
+yarn --cwd .. do list:identifier -u $MANAGER_API -s $MANAGER_TOKEN
+
+

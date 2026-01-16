@@ -1,0 +1,19 @@
+#!/bin/bash
+
+source .env
+ISSUER_FILE=issuer.data.json.$$
+
+export DEBUG="*:*"
+
+echo '{
+  "did": "does not matter",
+  "provider": "did:jwk",
+  "alias": "testdid",
+  "keytype": "Secp256r1"
+}' > $ISSUER_FILE
+
+FNAME=`realpath ./$ISSUER_FILE`
+
+yarn --cwd .. do register:identifier -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME 2>> .log
+
+rm $ISSUER_FILE

@@ -1,0 +1,27 @@
+#!/bin/bash
+
+source .env
+ISSUER_FILE=issuer.data.json.$$
+
+issuer.name = data.name;
+    issuer.did = data.did;
+    issuer.baseUrl = data.baseUrl;
+    issuer.adminToken = data.adminToken;
+    issuer.authorizationEndpoint = data.authorizationEndpoint;
+    issuer.tokenEndpoint = data.tokenEndpoint;
+    issuer.clientId = data.clientId;
+    issuer.clientSecret = data.clientSecret;
+    if (data.metadata) {
+        issuer.metadata = JSON.stringify(data.metadata);
+    }
+    if (data.statusLists) {
+        issuer.statuslists = JSON.stringify(data.statusLists);
+    }
+    
+echo '{
+
+}' > $ISSUER_FILE
+
+yarn --cwd .. do register:issuer -u $MANAGER_API -s $MANAGER_TOKEN -d $ISSUER_FILE
+
+rm $ISSUER_FILE

@@ -1,0 +1,81 @@
+#!/bin/bash
+
+source .env
+_FILE=test.data.json.$$
+export DEBUG="*:*"
+rm .log
+
+TEST_IDENT=1
+TEST_CRED=1
+
+if [ "$TEST_IDENT" = "1" ]
+then
+    echo '{
+    "did": "does not matter",
+    "provider": "did:jwk",
+    "alias": "testdid",
+    "keytype": "Secp256r1"
+    }' > $_FILE
+    FNAME=`realpath ./$_FILE`
+
+    echo "Creating identifier"
+    yarn --cwd .. do register:identifier -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > tmp.$$ 2>> .log
+    DID=`cat tmp.$$ | jq -r '.did'`
+    echo "New did has id $DID"
+
+    echo "Listing identifiers"
+    yarn --cwd .. do list:identifier -u $MANAGER_API -s $MANAGER_TOKEN > tmp.$$ 2>> .log
+
+    DID2=`cat tmp.$$ | jq -r '.data[] | select(.alias=="testdid") | .did'`
+    echo "Found did $DID2"
+
+    if [ "$DID" = "$DID2" ]
+    then
+        echo "DIDs match"
+    else
+        echo "DIDs do NOT match"
+    fi
+fi
+
+if [ "$TEST_CRED" = "1" ]
+then
+    echo '{
+    "name": "testcredential",
+    "configuration": "{\"format\":\"jwt_vc_json\",\"cryptographic_binding_methods_supported\":[\"did:jwk\",\"did:key\"],\"cryptographic_suites_supported\":[\"ES256\",\"EdDSA\"],\"proof_types_supported\":{\"jwt\":{\"proof_signing_alg_values_supported\":[\"ES256\",\"EdDSA\"]}},\"scope\":\"TestCredential\",\"display\":[{\"name\":\"Test Credential\",\"description\":\"API Testing Credential\"}],\"credential_definition\":{\"type\":[\"VerifiableCredential\",\"TestCredential\"],\"credentialSubject\":{\"name\":{\"value_type\":\"string\",\"mandatory\":true,\"display\":[{\"name\":\"Full name\"}]}}}}"
+    }' > $_FILE
+    FNAME=`realpath ./$_FILE`
+
+    echo "Creating credential"
+    yarn --cwd .. do register:credential -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > tmp.$$ 2>> .log
+    CREDID=`cat tmp.$$ | jq -r '.id'`
+    echo "New credential has id $CREDID"
+
+    echo "Listing credentials"
+    yarn --cwd .. do list:credential -u $MANAGER_API -s $MANAGER_TOKEN > tmp.$$ 2>> .log
+
+    CREDID2=`cat tmp.$$ | jq -r '.data[] | select(.name=="testcredential") | .id'`
+    echo "Found did $CREDID2"
+
+    if [ "$CREDID" = "$CREDID2" ]
+    then
+        echo "Credential ids match"
+    else
+        echo "Credential ids do NOT match"
+    fi
+fi
+
+if [ "$TEST_CRED" = "1" ]
+then
+    echo "Removing credential"
+    yarn --cwd .. do delete:credential -u $MANAGER_API -s $MANAGER_TOKEN -i $CREDID > tmp.$$ 2>> .log
+fi
+
+if [ "$TEST_IDENT" = "1" ]
+then
+    echo "Removing identifier"
+    yarn --cwd .. do delete:identifier -u $MANAGER_API -s $MANAGER_TOKEN -i $DID > tmp.$$ 2>> .log
+fi
+
+rm $_FILE
+rm tmp.$$
+

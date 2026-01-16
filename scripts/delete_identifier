@@ -1,0 +1,8 @@
+#!/bin/bash
+
+source .env
+DID=$1
+
+yarn --cwd .. do delete:identifier -u $MANAGER_API -s $MANAGER_TOKEN -i $DID 2>> .log
+
+
