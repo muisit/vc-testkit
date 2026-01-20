@@ -1,0 +1,20 @@
+#!/bin/bash
+
+source .env
+_FILE=.data.json.$$
+
+export DEBUG="*:*"
+
+echo '{
+  "credentials":["GenericCredential_JWT"],
+  "grants":{"urn:ietf:params:oauth:grant-type:pre-authorized_code":{"pre-authorized_code":"generate"}},
+  "credentialDataSupplierInput":{
+    "user":"test",
+    "name":"Test Testa"
+  }
+}' > $_FILE
+FNAME=`realpath ./$_FILE`
+
+yarn --cwd .. do create:offer -u $ISSUER -s $ISSUER_TOKEN -d $FNAME 2>> .log
+
+rm $_FILE

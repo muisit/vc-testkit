@@ -15,6 +15,9 @@ import { listCredentials } from './credential/listCredential';
 import { registerCredential } from './credential/registerCredential';
 import { deleteIssuer } from './issuer/deleteIssuer';
 import { listIssuers } from './issuer/listIssuers';
+import { createOffer } from './openid4vi/createOffer';
+import { getJson } from './util/getJson';
+import { quoteFile } from './util/quoteFile';
 
 function printHelp()
 {
@@ -24,14 +27,17 @@ function printHelp()
   console.log('');
   console.log('Commands:');
   console.log('  create:key [-t <type>]                                   - create and output a new key of the indicated type');
+  console.log('  create:offer -u <issuer url> -s <secret> -d <data file>  - create a credential offer');
   console.log('  delete:credential -i <identifier> -u <url> -s <secret>   - remove the given credential using the Management API');
   console.log('  delete:identifier -i <identifier> -u <url> -s <secret>   - remove the given identifier using the Management API');
   console.log('  delete:issuer -i <identifier> -u <url> -s <secret>       - remove the given issuer using the Management API');
+  console.log('  get:json -u <url> [-s <secret>]                          - retrieve a JSON document at the indicated url, with optional bearer token');
   console.log('  expand -d <data file>                                    - read a JWT token and expand it to a JSON structure');
   console.log('  list:credential -u <url> -s <secret>                     - list credentials using the Management API');
   console.log('  list:identifier -u <url> -s <secret>                     - list identifiers using the Management API');
   console.log('  list:issuer -u <url> -s <secret>                         - list issuers using the Management API');
   console.log('  parse:authrequest -d <data file>                         - parse the authorization request using @openid4vc/openid4vp');
+  console.log('  quote -d <data file>                                     - minify json input and quote it as a JSON stringified object')
   console.log('  register:as -d <data file> -u <url> -s <secret>          - register an AS on the eduID proxy AS');
   console.log('  register:credential -d <data file> -u <url> -s <secret>  - register a new credential on the Management API');
   console.log('  register:identifier -d <data file> -u <url> -s <secret>  - register a new identifier on the Management API');
@@ -83,6 +89,9 @@ async function main()
         case 'create:key':
             output = await createKey('' + (args?.arguments?.type ?? 'secp256r1'));
             break;
+        case 'create:offer':
+            output = await createOffer('' + (args?.arguments?.url), '' + (args?.arguments?.secret), '' + (args?.arguments?.data ?? ''));
+            break;
         case 'delete:credential':
             output = await deleteCredential('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.identifier ?? ''));
             break;
@@ -92,6 +101,12 @@ async function main()
         case 'delete:issuer':
             output = await deleteIssuer('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.identifier ?? ''));
             break;
+        case 'expand':
+            output = await expandToken('' + (args.arguments?.data ?? ''));
+            break;
+        case 'get:json':
+            output = await getJson('' + (args?.arguments?.url ?? ''), args?.arguments?.secret as string|undefined);
+            break;
         case 'list:credential':
             output = await listCredentials('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''));
             break;
@@ -100,6 +115,12 @@ async function main()
             break;
         case 'list:issuer':
             output = await listIssuers('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''));
+            break;
+        case 'parse:authrequest':
+            output = await parse_request('' + (args.arguments?.data ?? ''));
+            break;
+        case 'quote':
+            output = quoteFile('' + (args.arguments?.data ?? ''));
             break;
         case 'register:as':
             output = await registerAS('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.data ?? ''));
@@ -112,12 +133,6 @@ async function main()
             break;
         case 'register:issuer':
             output = await registerIssuer('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.data ?? ''));
-            break;
-        case 'expand':
-            output = await expandToken('' + (args.arguments?.data ?? ''));
-            break;
-        case 'parse:authrequest':
-            output = await parse_request('' + (args.arguments?.data ?? ''));
             break;
     }
     process.stdout.write(JSON.stringify(output, null, 2));

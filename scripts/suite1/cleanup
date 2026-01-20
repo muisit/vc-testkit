@@ -1,0 +1,43 @@
+#!/bin/bash
+
+source .env
+export DEBUG="*:*"
+rm .log
+
+EXT=$1
+CREDID=`cat credential_registration.$EXT | jq -r '.id'`
+if [ "x$CREDID" = "x" ]
+then
+    echo "Could not determine credential ID"
+    exit
+else
+    echo "Credential ID: $CREDID"
+fi
+
+DID=`cat identifier_registration.$EXT | jq -r '.did'`
+if [ "x$DID" = "x" ]
+then
+    echo "Could not determine identifier ID"
+    exit
+else
+    echo "Identifier ID: $DID"
+fi
+
+ISSID=`cat issuer_registration.$EXT | jq -r '.id'`
+if [ "x$ISSID" = "x" ]
+then
+    echo "Could not determine issuer ID"
+    exit
+else
+    echo "issuer ID: $ISSID"
+fi
+
+echo "Removing issuer"
+yarn --cwd ../.. do delete:issuer -u $MANAGER_API -s $MANAGER_TOKEN -i $ISSID 2>> .log
+echo "Removing identifier"
+yarn --cwd ../.. do delete:identifier -u $MANAGER_API -s $MANAGER_TOKEN -i $DID 2>> .log
+echo "Removing credential"
+yarn --cwd ../.. do delete:credential -u $MANAGER_API -s $MANAGER_TOKEN -i $CREDID 2>> .log
+
+rm credential_registration.$EXT identifier_registration.$EXT issuer_registration.$EXT credential_configuration.$EXT
+

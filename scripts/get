@@ -1,0 +1,7 @@
+#!/bin/bash
+
+source .env
+
+export DEBUG="*:*"
+yarn --cwd .. do get:json -u $1 -s $2 2>> .log
+

@@ -1,0 +1,110 @@
+#!/bin/bash
+
+source .env
+export DEBUG="*:*"
+rm .log
+
+_FILE=.data.$$
+FNAME=`realpath ./$_FILE`
+
+echo "Creating credential configuration"
+echo "{
+  \"format\": \"jwt_vc_json\",
+  \"cryptographic_binding_methods_supported\":[\"did:jwk\",\"did:key\"],
+  \"cryptographic_suites_supported\":[\"ES256\",\"EdDSA\"],
+  \"proof_types_supported\":{
+    \"jwt\":{
+      \"proof_signing_alg_values_supported\":[\"ES256\",\"EdDSA\"]
+    }
+  },
+  \"scope\":\"$CREDENTIAL_NAME\",
+  \"display\":[{
+    \"name\":\"Test Credential\",
+    \"description\":\"API Testing Credential\"
+  }],
+  \"credential_definition\":{
+    \"type\":[\"VerifiableCredential\",\"$CREDENTIAL_NAME\"],
+    \"credentialSubject\":{
+      \"name\":{
+        \"value_type\":\"string\",
+        \"mandatory\":true,
+        \"display\":[{
+          \"name\":\"Full name\"
+        }]
+      }
+    }
+  }  
+}" > $_FILE
+
+yarn --cwd ../.. do quote -d $FNAME > credential_configuration.$$ 2>> .log
+CREDCONF=`cat credential_configuration.$$ | jq '.content'`
+
+echo "Creating credential on remote"
+echo "{
+  \"name\": \"$CREDENTIAL_NAME\",
+  \"configuration\": $CREDCONF
+}" > $_FILE
+
+yarn --cwd ../.. do register:credential -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > credential_registration.$$ 2>> .log
+CREDID=`cat credential_registration.$$ | jq -r '.id'`
+if [ "x$CREDID" = "x" ]
+then
+    echo "Could not determine credential ID"
+    exit
+else
+    echo "Credential ID: $CREDID"
+fi
+
+echo "Creating identifier on remote"
+echo "{
+  \"did\": \"does not matter\",
+  \"provider\": \"did:jwk\",
+  \"alias\": \"$IDENTIFIER_ALIAS\",
+  \"keytype\": \"Secp256r1\"
+}" > $_FILE
+
+yarn --cwd ../.. do register:identifier -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > identifier_registration.$$ 2>> .log
+DID=`cat identifier_registration.$$ | jq -r '.did'`
+if [ "x$DID" = "x" ]
+then
+    echo "Could not determine identifier ID"
+    exit
+else
+    echo "Identifier ID: $DID"
+fi
+
+echo "{
+  \"name\": \"test\",
+  \"did\": \"$IDENTIFIER_ALIAS\",
+  \"baseUrl\": \"$MANAGER_API/$ISSUER_NAME\",
+  \"adminToken\": \"$ISSUER_TOKEN\",
+  \"metadata\": {
+    \"display\": [{
+      \"name\": \"GenericIssuer\",
+      \"description\": \"GenericIssuer\",
+      \"logo\": {
+        \"uri\": \"https://example.com/logo.png\",
+        \"alt_text\": \"Alt text\"
+      }
+    }],
+    \"credential_configurations_supported\": {
+      \"GenericCredential\": {
+        \"format\": \"jwt_vc_json\",
+        \"extends\": \"$CREDENTIAL_NAME\"
+      }
+    }
+  }
+}" > $_FILE
+
+yarn --cwd ../.. do register:issuer -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > issuer_registration.$$ 2>> .log
+ISSID=`cat issuer_registration.$$ | jq -r '.id'`
+if [ "x$ISSID" = "x" ]
+then
+    echo "Could not determine issuer ID"
+    exit
+else
+    echo "issuer ID: $ISSID"
+fi
+
+
+rm $_FILE
