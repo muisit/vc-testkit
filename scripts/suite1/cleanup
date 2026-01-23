@@ -2,10 +2,16 @@
 
 source .env
 export DEBUG="*:*"
-rm .log
+TESTID=$1
 
-EXT=$1
-CREDID=`cat credential_registration.$EXT | jq -r '.id'`
+/bin/bash ./prepareTestEnv $TESTID
+
+_DIR="./test.$TESTID"
+_FILE="$_DIR/data.json"
+_LOG=`realpath $_DIR/log`
+FNAME=`realpath $_FILE`
+
+CREDID=`cat $_DIR/credential_registration.json | jq -r '.id'`
 if [ "x$CREDID" = "x" ]
 then
     echo "Could not determine credential ID"
@@ -14,7 +20,7 @@ else
     echo "Credential ID: $CREDID"
 fi
 
-DID=`cat identifier_registration.$EXT | jq -r '.did'`
+DID=`cat $_DIR/identifier_registration.json | jq -r '.did'`
 if [ "x$DID" = "x" ]
 then
     echo "Could not determine identifier ID"
@@ -23,7 +29,7 @@ else
     echo "Identifier ID: $DID"
 fi
 
-ISSID=`cat issuer_registration.$EXT | jq -r '.id'`
+ISSID=`cat $_DIR/issuer_registration.json | jq -r '.id'`
 if [ "x$ISSID" = "x" ]
 then
     echo "Could not determine issuer ID"
@@ -33,11 +39,10 @@ else
 fi
 
 echo "Removing issuer"
-yarn --cwd ../.. do delete:issuer -u $MANAGER_API -s $MANAGER_TOKEN -i $ISSID 2>> .log
+yarn --cwd $YARNDIR do delete:issuer -u $MANAGER_API -s $MANAGER_TOKEN -i $ISSID 2>> $_LOG
 echo "Removing identifier"
-yarn --cwd ../.. do delete:identifier -u $MANAGER_API -s $MANAGER_TOKEN -i $DID 2>> .log
+yarn --cwd $YARNDIR do delete:identifier -u $MANAGER_API -s $MANAGER_TOKEN -i $DID 2>> $_LOG
 echo "Removing credential"
-yarn --cwd ../.. do delete:credential -u $MANAGER_API -s $MANAGER_TOKEN -i $CREDID 2>> .log
+yarn --cwd $YARNDIR do delete:credential -u $MANAGER_API -s $MANAGER_TOKEN -i $CREDID 2>> $_LOG
 
-rm credential_registration.$EXT identifier_registration.$EXT issuer_registration.$EXT credential_configuration.$EXT
 

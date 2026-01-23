@@ -2,12 +2,16 @@
 
 source .env
 export DEBUG="*:*"
-rm .log
+TESTID=$1
 
-_FILE=.data.$$
-FNAME=`realpath ./$_FILE`
+/bin/bash ./prepareTestEnv $TESTID
 
-echo "Creating credential configuration"
+_DIR="./test.$TESTID"
+_FILE="$_DIR/data.json"
+_LOG=`realpath $_DIR/log`
+FNAME=`realpath $_FILE`
+
+echo "Creating jwt_vc_json credential configuration"
 echo "{
   \"format\": \"jwt_vc_json\",
   \"cryptographic_binding_methods_supported\":[\"did:jwk\",\"did:key\"],
@@ -36,8 +40,8 @@ echo "{
   }  
 }" > $_FILE
 
-yarn --cwd ../.. do quote -d $FNAME > credential_configuration.$$ 2>> .log
-CREDCONF=`cat credential_configuration.$$ | jq '.content'`
+yarn --cwd $YARNDIR do quote -d $FNAME > $_DIR/credential_configuration.json 2>> $_LOG
+CREDCONF=`cat $_DIR/credential_configuration.json | jq '.content'`
 
 echo "Creating credential on remote"
 echo "{
@@ -45,8 +49,8 @@ echo "{
   \"configuration\": $CREDCONF
 }" > $_FILE
 
-yarn --cwd ../.. do register:credential -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > credential_registration.$$ 2>> .log
-CREDID=`cat credential_registration.$$ | jq -r '.id'`
+yarn --cwd $YARNDIR do register:credential -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > $_DIR/credential_registration.json 2>> $_LOG
+CREDID=`cat $_DIR/credential_registration.json | jq -r '.id'`
 if [ "x$CREDID" = "x" ]
 then
     echo "Could not determine credential ID"
@@ -63,8 +67,8 @@ echo "{
   \"keytype\": \"Secp256r1\"
 }" > $_FILE
 
-yarn --cwd ../.. do register:identifier -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > identifier_registration.$$ 2>> .log
-DID=`cat identifier_registration.$$ | jq -r '.did'`
+yarn --cwd $YARNDIR do register:identifier -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > $_DIR/identifier_registration.json 2>> $_LOG
+DID=`cat $_DIR/identifier_registration.json | jq -r '.did'`
 if [ "x$DID" = "x" ]
 then
     echo "Could not determine identifier ID"
@@ -74,7 +78,7 @@ else
 fi
 
 echo "{
-  \"name\": \"test\",
+  \"name\": \"$ISSUER_NAME\",
   \"did\": \"$IDENTIFIER_ALIAS\",
   \"baseUrl\": \"$MANAGER_API/$ISSUER_NAME\",
   \"adminToken\": \"$ISSUER_TOKEN\",
@@ -88,16 +92,17 @@ echo "{
       }
     }],
     \"credential_configurations_supported\": {
-      \"GenericCredential\": {
-        \"format\": \"jwt_vc_json\",
-        \"extends\": \"$CREDENTIAL_NAME\"
+      \"$CREDENTIAL_NAME\": {},
+      \"${CREDENTIAL_NAME}_SD\": {
+          \"format\": \"dc+sd-jwt\",
+          \"extends\": \"$CREDENTIAL_NAME\"
       }
     }
   }
 }" > $_FILE
 
-yarn --cwd ../.. do register:issuer -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > issuer_registration.$$ 2>> .log
-ISSID=`cat issuer_registration.$$ | jq -r '.id'`
+yarn --cwd $YARNDIR do register:issuer -u $MANAGER_API -s $MANAGER_TOKEN -d $FNAME > $_DIR/issuer_registration.json 2>> $_LOG
+ISSID=`cat $_DIR/issuer_registration.json | jq -r '.id'`
 if [ "x$ISSID" = "x" ]
 then
     echo "Could not determine issuer ID"
@@ -106,5 +111,30 @@ else
     echo "issuer ID: $ISSID"
 fi
 
+echo "Restarting remote agent"
+yarn --cwd $YARNDIR do restart -u $MANAGER_API -s $MANAGER_TOKEN 2>> $_LOG
+sleep 3
 
-rm $_FILE
+yarn --cwd $YARNDIR do version -u $MANAGER_API > $_DIR/version.json 2>> $_LOG
+VERSION=`cat $_DIR/version.json | jq -r '.version'`
+while [ "x$VERSION" = "x" -o "x$VERSION" = "xnull" ]
+do
+    echo "Waiting a tad longer for the remote"
+    sleep 3
+    yarn --cwd $YARNDIR do version -u $MANAGER_API > $_DIR/version.json 2>> $_LOG
+    VERSION=`cat $_DIR/version.json | jq -r '.version'`
+done
+echo "Version is $VERSION"
+
+echo "Retrieving metadata of live issuer"
+yarn --cwd $YARNDIR do get:json -u "$MANAGER_API/$ISSUER_NAME/.well-known/openid-credential-issuer" > $_DIR/openid-credential-issuer.json 2>>$_LOG
+CREDISSUER=`cat $_DIR/openid-credential-issuer.json | jq -r '.credential_issuer'`
+while [ ! "x$CREDISSUER" = "x$MANAGER_API/$ISSUER_NAME" ]
+do
+    sleep 3
+    yarn --cwd $YARNDIR do get:json -u "$MANAGER_API/$ISSUER_NAME/.well-known/openid-credential-issuer" > $_DIR/openid-credential-issuer.json 2>>$_LOG
+    CREDISSUER=`cat $_DIR/openid-credential-issuer.json | jq -r '.credential_issuer'`
+done
+echo "Credential issuer live at $CREDISSUER"
+
+echo "End of issuer setup"
