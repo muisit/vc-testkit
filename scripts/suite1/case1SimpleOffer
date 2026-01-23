@@ -112,10 +112,12 @@ then
 fi
 
 LENGTH=`cat $_DIR/token_response.json | jq -r '.authorization_details | length'`
+INDEX=0
 while [ $LENGTH -gt 0 ]
 do
-    echo "Requesting credential from $CREDISS ($LENGTH)"
+    echo "Requesting credential from $CREDISS ($INDEX)"
     KEYP=`realpath $_DIR/key.json`
     yarn --cwd $YARNDIR do get:credential -u $CREDISS -s $ACCESSTOKEN -k $KEYP -d $FNAME -n "$NONCE" >$_DIR/credential.jwt 2>>$_LOG
     LENGTH=$(($LENGTH-1))
+    INDEX=$(($INDEX+1))
 done
