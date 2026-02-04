@@ -1,0 +1,19 @@
+#!/bin/bash
+
+source .env
+export DEBUG="*:*"
+rm -f .log >/dev/null 2>&1
+
+TESTID=$1
+if [ "x$TESTID" = "x" ]
+then
+    TESTID="$$"
+fi
+rm -rf test.$TESTID 1>/dev/null 2>&1
+mkdir test.$TESTID
+DIR="./test.$TESTID"
+
+yarn --cwd ../.. do create:key -t Secp256r1 > $DIR/key.json
+
+echo "Checking MBOB"
+./check_issuer $TESTID $ISSUER mbob $ISSUER_MBOB_TOKEN "ABC:vc2"

@@ -1,0 +1,10 @@
+{
+    "type": "AcademicBaseCredential",
+    "data": {
+        "given_name":"Martin",
+        "family_name":"Jorgensen",
+        "sub":"mjorgensen",
+        "eduperson_unique_id":"d29632ca63d10461fa3ddc400cb7f5089806a635",
+        "email":"mjorgensen@example.net"
+    }
+}

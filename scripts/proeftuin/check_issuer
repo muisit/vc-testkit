@@ -1,0 +1,58 @@
+#!/bin/bash
+
+TESTID=$1
+URL=$2
+TENANT=$3
+SECRET=$4
+CREDS=$5
+
+DIR="./test.$TESTID"
+
+# check the issuer well-known files
+curl -s https://$URL/$TENANT/.well-known/openid-credential-issuer > $DIR/openid-credential-issuer.$TENANT.1.json
+curl -s https://$URL/.well-known/openid-credential-issuer/$TENANT > $DIR/openid-credential-issuer.$TENANT.2.json
+diff -q $DIR/openid-credential-issuer.$TENANT.1.json $DIR/openid-credential-issuer.$TENANT.2.json >/dev/null 2>&1
+if [ "x$?" = "x1" ]
+then
+    echo "ERROR: $TENANT openid-credential-issuer data mismatch"
+fi
+
+curl -s https://$URL/$TENANT/.well-known/openid-configuration > $DIR/openid-configuration.$TENANT.1.json
+curl -s https://$URL/.well-known/openid-configuration/$TENANT > $DIR/openid-configuration.$TENANT.2.json
+diff -q $DIR/openid-credential-issuer.$TENANT.1.json $DIR/openid-credential-issuer.$TENANT.2.json >/dev/null 2>&1
+if [ "x$?" = "x1" ]
+then
+    echo "ERROR: $TENANT openid-configuration data mismatch"
+fi
+
+curl -s https://$URL/$TENANT/.well-known/oauth-authorization-server > $DIR/oauth-authorization-server.$TENANT.1.json
+curl -s https://$URL/.well-known/oauth-authorization-server/$TENANT > $DIR/oauth-authorization-server.$TENANT.2.json
+diff -q $DIR/openid-credential-issuer.$TENANT.1.json $DIR/openid-credential-issuer.$TENANT.2.json >/dev/null 2>&1
+if [ "x$?" = "x1" ]
+then
+    echo "ERROR: $TENANT oauth-authorization-server data mismatch"
+fi
+
+IFS=',' read -ra credentials <<< "$CREDS"
+for credential in ${credentials[@]}
+do
+    IFS=':' read -ra elements <<< "$credential"
+    echo "Testing ${elements[0]} of type ${elements[1]}"
+    CRED=${elements[0]}
+
+    DATA=`cat ${CRED}.json | jq '.data'`
+    TYPE=`cat ${CRED}.json | jq '.type'`
+
+    echo "{
+        \"grants\": {
+            \"urn:ietf:params:oauth:grant-type:pre-authorized_code\": {
+                \"pre-authorized_code\": \"generate\"
+            }
+        },
+        \"credentials\": [$TYPE],
+        \"credentialDataSupplierInput\": $DATA
+    }" | jq '.' > $DIR/${TENANT}_${CRED}_offer.json
+    FILE=`realpath $DIR/${TENANT}_${CRED}_offer.json`
+    yarn --cwd ../.. do create:offer -u https://$URL/$TENANT -s "$SECRET" -d $FILE > $DIR/${TENANT}_${CRED}_offer_response.json
+    
+done
