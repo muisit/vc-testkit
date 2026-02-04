@@ -8,16 +8,12 @@ import { parse_request } from "./openid4vp/parse_request";
 import { registerIssuer } from './issuer/registerIssuer';
 import { registerIdentifier } from "./identifiers/registerIdentifier";
 import { deleteIdentifier } from './identifiers/deleteIdentifier';
-import { getArgs } from "./util/args";
+import { getArgs, getJson, quoteFile, restart, version } from "./util";
 import { listIdentifiers } from './identifiers/listIdentifiers';
-import { deleteCredential } from './credential/deleteCredential';
-import { listCredentials } from './credential/listCredential';
-import { registerCredential } from './credential/registerCredential';
+import { deleteCredential, listCredentials, registerCredential } from './credential';
 import { deleteIssuer } from './issuer/deleteIssuer';
 import { listIssuers } from './issuer/listIssuers';
-import { createOffer } from './openid4vi/createOffer';
-import { getJson } from './util/getJson';
-import { quoteFile } from './util/quoteFile';
+import { createOffer, getOffer, getToken, getCredential } from './openid4vi';
 
 function printHelp()
 {
@@ -32,6 +28,10 @@ function printHelp()
   console.log('  delete:identifier -i <identifier> -u <url> -s <secret>   - remove the given identifier using the Management API');
   console.log('  delete:issuer -i <identifier> -u <url> -s <secret>       - remove the given issuer using the Management API');
   console.log('  get:json -u <url> [-s <secret>]                          - retrieve a JSON document at the indicated url, with optional bearer token');
+  console.log('  get:credential -u <url> -s <access token> -k <keyfile> -d <data file> -n <nonce>');
+  console.log('                                                           - request a credential');
+  console.log('  get:offer -u <url>                                       - parse and retrieve an OID4VCI offer URL');
+  console.log('  get:token -u <url> -d <data file>                        - perform an OID4VCI token request to the token endpoint with the data');
   console.log('  expand -d <data file>                                    - read a JWT token and expand it to a JSON structure');
   console.log('  list:credential -u <url> -s <secret>                     - list credentials using the Management API');
   console.log('  list:identifier -u <url> -s <secret>                     - list identifiers using the Management API');
@@ -42,6 +42,7 @@ function printHelp()
   console.log('  register:credential -d <data file> -u <url> -s <secret>  - register a new credential on the Management API');
   console.log('  register:identifier -d <data file> -u <url> -s <secret>  - register a new identifier on the Management API');
   console.log('  register:issuer -d <data file> -u <url> -s <secret>      - register a new issuer on the Management API');
+  console.log('  restart -u <url> -s <secret>                             - restart the remote application using the Management API');
 }
 
 async function main()
@@ -49,6 +50,14 @@ async function main()
     const args = getArgs([{
         name: "data",
         short: "d",
+        hasArg: true
+      },{
+        name: "key",
+        short: "k",
+        hasArg: true
+      },{
+        name: "nonce",
+        short: "n",
         hasArg: true
       },{
         name: "type",
@@ -104,8 +113,23 @@ async function main()
         case 'expand':
             output = await expandToken('' + (args.arguments?.data ?? ''));
             break;
+        case 'get:credential':
+            output = await getCredential(
+                    '' + (args?.arguments?.url ?? ''),
+                    '' + (args?.arguments?.secret),
+                    '' + (args?.arguments?.key ?? ''),
+                    '' + (args?.arguments?.data ?? ''),
+                    '' + (args?.arguments?.nonce ?? '')
+                );
+            break;
         case 'get:json':
             output = await getJson('' + (args?.arguments?.url ?? ''), args?.arguments?.secret as string|undefined);
+            break;
+        case 'get:offer':
+            output = await getOffer('' + (args?.arguments?.url ?? ''));
+            break;
+        case 'get:token':
+            output = await getToken('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.data ?? ''));
             break;
         case 'list:credential':
             output = await listCredentials('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''));
@@ -133,6 +157,12 @@ async function main()
             break;
         case 'register:issuer':
             output = await registerIssuer('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.data ?? ''));
+            break;
+        case 'restart':
+            output = await restart('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''));
+            break;
+        case 'version':
+            output = await version('' + (args?.arguments?.url ?? ''));
             break;
     }
     process.stdout.write(JSON.stringify(output, null, 2));

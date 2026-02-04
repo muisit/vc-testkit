@@ -1,0 +1,123 @@
+#!/bin/bash
+
+source .env
+export DEBUG="*:*"
+TESTID=$1
+
+/bin/bash ./prepareTestEnv $TESTID
+
+_DIR="./test.$TESTID"
+_FILE="$_DIR/data.json"
+_LOG=`realpath $_DIR/log`
+FNAME=`realpath $_FILE`
+
+ISSUER_URL="$MANAGER_API/$ISSUER_NAME"
+
+echo "Creating local wallet key"
+yarn --cwd $YARNDIR do create:key -t Secp256r1 > $_DIR/key.json 2>>$_LOG
+PKEY=`cat $_DIR/key.json | jq -r '.privateKey'`
+if [ "x$PKEY" = "x" -o "x$PKEY" = "xnull" ]
+then
+    echo "ERROR Could not create local key"
+    exit
+fi
+
+echo "Creating simple offer for Generic Credential using pre-auth code flow"
+echo "{
+  \"credentials\":[\"$CREDENTIAL_NAME\"],
+  \"grants\":{\"urn:ietf:params:oauth:grant-type:pre-authorized_code\":{\"pre-authorized_code\":\"generate\"}},
+  \"credentialDataSupplierInput\":{
+    \"given_name\":\"Test\",
+    \"family_name\":\"Versucher\"
+  }
+}" > $_FILE
+yarn --cwd $YARNDIR do create:offer -u $ISSUER_URL -s $ISSUER_TOKEN -d $FNAME > $_DIR/create_offer_response.json 2>>$_LOG
+OFFER_UUID=`cat $_DIR/create_offer_response.json | jq -r '.id'`
+OFFER_URL=`cat $_DIR/create_offer_response.json | jq -r '.uri'`
+
+if [ "x$OFFER_UUID" = "x" -o "x$OFFER_UUID" = "xnull" ]
+then
+    echo "ERROR: could not create offer"
+    exit
+fi
+
+echo "Retrieving credential offer"
+yarn --cwd $YARNDIR do get:offer -u $OFFER_URL > $_DIR/credential_offer.json 2>>$_LOG
+STATE=`cat $_DIR/credential_offer.json | jq -r '.grants["urn:ietf:params:oauth:grant-type:pre-authorized_code"]["pre-authorized_code"]'`
+if [ "x$STATE" = "x" -o "x$STATE" = "xnull" ]
+then
+    echo "ERROR retrieving offer $STATE"
+    exit
+fi
+
+echo "Retrieving metadata"
+yarn --cwd $YARNDIR do get:json -u "$ISSUER_URL/.well-known/openid-credential-issuer" > $_DIR/openid-credential-issuer.json 2>>$_LOG
+ISSUER_URL2=`cat $_DIR/openid-credential-issuer.json | jq -r '.credential_issuer'`
+if [ ! "x$ISSUER_URL2" = "x$ISSUER_URL" ]
+then
+    echo "ERROR retrieving issuer metadata"
+    exit
+fi
+
+echo "Retrieving oidc-configuration"
+yarn --cwd $YARNDIR do get:json -u "$ISSUER_URL/.well-known/openid-configuration" > $_DIR/openid-configuration.json 2>>$_LOG
+TOKEN=`cat $_DIR/openid-configuration.json | jq -r '.token_endpoint'`
+
+echo "Retrieving oauth configuration"
+yarn --cwd $YARNDIR do get:json -u "$ISSUER_URL/.well-known/oauth-authorization-server" > $_DIR/oauth-authorization-server.json 2>>$_LOG
+TOKEN2=`cat $_DIR/oauth-authorization-server.json | jq -r '.token_endpoint'`
+
+if [ "x$TOKEN" = "" -o "x$TOKEN" = "xnull" ]
+then
+    TOKEN=$TOKEN2
+fi
+if [ "x$TOKEN" = "" -o "x$TOKEN" = "xnull" ]
+then
+    echo "ERROR Could not find token endpoint"
+    exit
+fi
+
+echo "{
+    \"grant_type\":\"urn:ietf:params:oauth:grant-type:pre-authorized_code\",
+    \"pre-authorized_code\":\"$STATE\",
+    \"authorization_details\": [{
+        \"type\":\"openid-credential\",
+        \"credential_configuration_id\":\"$CREDENTIAL_NAME\"
+    }] 
+}" > $_FILE
+
+echo "Requesting access token"
+yarn --cwd $YARNDIR do get:token -u $TOKEN -d $FNAME > $_DIR/token_response.json 2>>$_LOG
+ACCESSTOKEN=`cat $_DIR/token_response.json | jq -r '.access_token'`
+NONCE=`cat $_DIR/token_response.json | jq -r '.c_nonce'`
+if [ "x$ACCESSTOKEN" = "x" -o "x$ACCESSTOKEN" = "xnull" ]
+then
+    echo "ERROR Could not retrieve access token"
+    exit
+fi
+
+CREDISS=`cat $_DIR/openid-credential-issuer.json | jq -r '.credential_endpoint'`
+NONCEURL=`cat $_DIR/openid-credential-issuer.json | jq -r '.nonce_endpoint'`
+if [ "x$NONCEURL" = "x" -o "x$NONCEURL" = "xnull" ]
+then
+    echo "WARNING No nonce endpoint found"
+else
+    yarn --cwd $YARNDIR do get:json -u $NONCEURL > $_DIR/nonce.json 2>>$_LOG
+    NONCE=`cat $_DIR/nonce.json | jq -r '.c_nonce'`
+fi
+if [ "x$NONCE" = "x" -o "x$NONCE" = "xnull" ]
+then
+    echo "no nonce found"
+    exit
+fi
+
+LENGTH=`cat $_DIR/token_response.json | jq -r '.authorization_details | length'`
+INDEX=0
+while [ $LENGTH -gt 0 ]
+do
+    echo "Requesting credential from $CREDISS ($INDEX)"
+    KEYP=`realpath $_DIR/key.json`
+    yarn --cwd $YARNDIR do get:credential -u $CREDISS -s $ACCESSTOKEN -k $KEYP -d $FNAME -n "$NONCE" >$_DIR/credential.jwt 2>>$_LOG
+    LENGTH=$(($LENGTH-1))
+    INDEX=$(($INDEX+1))
+done

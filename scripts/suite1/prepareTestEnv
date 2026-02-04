@@ -1,0 +1,17 @@
+#!/bin/bash
+
+TESTID=$1
+
+if [ -d "./test.$TESTID" ]
+then
+  if [ "x$2" = "xclean" ]
+  then
+    rm -f "./test.$TESTID/*"
+  fi
+else
+  if [ -f "./test.$TESTID" ]
+  then
+    rm -rf "./test.$TESTID"
+  fi
+  mkdir "./test.$TESTID"
+fi
