@@ -14,6 +14,9 @@ import { deleteCredential, listCredentials, registerCredential } from './credent
 import { deleteIssuer } from './issuer/deleteIssuer';
 import { listIssuers } from './issuer/listIssuers';
 import { createOffer, getOffer, getToken, getCredential } from './openid4vi';
+import { createProof } from './openid4vi/createProof';
+import { resolveKey } from './identifiers/resolveKey';
+import { verifyToken } from './jwt/verifyToken';
 
 function printHelp()
 {
@@ -24,15 +27,18 @@ function printHelp()
   console.log('Commands:');
   console.log('  create:key [-t <type>]                                   - create and output a new key of the indicated type');
   console.log('  create:offer -u <issuer url> -s <secret> -d <data file>  - create a credential offer');
+  console.log('  create:proof -k <keyfile> -n <nonce> -u <issuer url> [-c clientid]');
+  console.log('                                                           - create a JWT proof used for credential issuance')
   console.log('  delete:credential -i <identifier> -u <url> -s <secret>   - remove the given credential using the Management API');
   console.log('  delete:identifier -i <identifier> -u <url> -s <secret>   - remove the given identifier using the Management API');
   console.log('  delete:issuer -i <identifier> -u <url> -s <secret>       - remove the given issuer using the Management API');
-  console.log('  get:json -u <url> [-s <secret>]                          - retrieve a JSON document at the indicated url, with optional bearer token');
+  console.log('  get:json -u <url> [-s <secret>] [-m method]              - retrieve a JSON document at the indicated url, with optional bearer token');
   console.log('  get:credential -u <url> -s <access token> -k <keyfile> -d <data file> -n <nonce>');
   console.log('                                                           - request a credential');
   console.log('  get:offer -u <url>                                       - parse and retrieve an OID4VCI offer URL');
   console.log('  get:token -u <url> -d <data file>                        - perform an OID4VCI token request to the token endpoint with the data');
-  console.log('  expand -d <data file>                                    - read a JWT token and expand it to a JSON structure');
+  console.log('  jwt:expand -d <data file>                                - read a JWT token and expand it to a JSON structure');
+  console.log('  jwt:verify -d <data file> -k keyfile                     - verify the signature of a JWT token against the key');
   console.log('  list:credential -u <url> -s <secret>                     - list credentials using the Management API');
   console.log('  list:identifier -u <url> -s <secret>                     - list identifiers using the Management API');
   console.log('  list:issuer -u <url> -s <secret>                         - list issuers using the Management API');
@@ -48,20 +54,12 @@ function printHelp()
 async function main()
 {
     const args = getArgs([{
+        name: "client",
+        short: "c",
+        hasArg: true
+      }, {
         name: "data",
         short: "d",
-        hasArg: true
-      },{
-        name: "key",
-        short: "k",
-        hasArg: true
-      },{
-        name: "nonce",
-        short: "n",
-        hasArg: true
-      },{
-        name: "type",
-        short: "t",
         hasArg: true
       },{
         name: "file",
@@ -72,12 +70,28 @@ async function main()
         short: "i",
         hasArg: true
       },{
-        name: "url",
-        short: "u",
+        name: "key",
+        short: "k",
+        hasArg: true
+      },{
+        name: "method",
+        short: "m",
+        hasArg: true
+      },{
+        name: "nonce",
+        short: "n",
         hasArg: true
       },{
         name: "secret",
         short: "s",
+        hasArg: true
+      },{
+        name: "type",
+        short: "t",
+        hasArg: true
+      },{
+        name: "url",
+        short: "u",
         hasArg: true
       }
     ]);
@@ -101,6 +115,9 @@ async function main()
         case 'create:offer':
             output = await createOffer('' + (args?.arguments?.url), '' + (args?.arguments?.secret), '' + (args?.arguments?.data ?? ''));
             break;
+        case 'create:proof':
+            output = await createProof('' + (args?.arguments?.key), '' + (args?.arguments?.nonce), '' + (args?.arguments?.url));
+            break;
         case 'delete:credential':
             output = await deleteCredential('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.identifier ?? ''));
             break;
@@ -110,26 +127,28 @@ async function main()
         case 'delete:issuer':
             output = await deleteIssuer('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.identifier ?? ''));
             break;
-        case 'expand':
-            output = await expandToken('' + (args.arguments?.data ?? ''));
-            break;
         case 'get:credential':
             output = await getCredential(
                     '' + (args?.arguments?.url ?? ''),
                     '' + (args?.arguments?.secret),
-                    '' + (args?.arguments?.key ?? ''),
                     '' + (args?.arguments?.data ?? ''),
-                    '' + (args?.arguments?.nonce ?? '')
                 );
             break;
         case 'get:json':
-            output = await getJson('' + (args?.arguments?.url ?? ''), args?.arguments?.secret as string|undefined);
+            debug(args.arguments);
+            output = await getJson('' + (args?.arguments?.url ?? ''), args?.arguments?.secret as string|undefined, (args?.arguments?.method as string) ?? 'GET');
             break;
         case 'get:offer':
             output = await getOffer('' + (args?.arguments?.url ?? ''));
             break;
         case 'get:token':
             output = await getToken('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.data ?? ''));
+            break;
+        case 'jwt:expand':
+            output = await expandToken('' + (args.arguments?.data ?? ''));
+            break;
+        case 'jwt:verify':
+            output = await verifyToken('' + (args.arguments?.data ?? ''), '' + (args?.arguments?.key ?? ''));
             break;
         case 'list:credential':
             output = await listCredentials('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''));
@@ -157,6 +176,9 @@ async function main()
             break;
         case 'register:issuer':
             output = await registerIssuer('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''), '' + (args?.arguments?.data ?? ''));
+            break;
+        case 'resolve':
+            output = await resolveKey('' + (args?.arguments?.key ?? ''));
             break;
         case 'restart':
             output = await restart('' + (args?.arguments?.url ?? ''), '' + (args?.arguments?.secret ?? ''));

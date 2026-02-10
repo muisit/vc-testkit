@@ -8,6 +8,7 @@ CREDS=$5
 
 DIR="./test.$TESTID"
 
+echo "Checking OID4VCI metadata configuration for $TENANT"
 # check the issuer well-known files
 curl -s https://$URL/$TENANT/.well-known/openid-credential-issuer > $DIR/openid-credential-issuer.$TENANT.1.json
 curl -s https://$URL/.well-known/openid-credential-issuer/$TENANT > $DIR/openid-credential-issuer.$TENANT.2.json
@@ -15,44 +16,82 @@ diff -q $DIR/openid-credential-issuer.$TENANT.1.json $DIR/openid-credential-issu
 if [ "x$?" = "x1" ]
 then
     echo "ERROR: $TENANT openid-credential-issuer data mismatch"
+    exit 1
 fi
 
+ISSUERURL=`cat $DIR/openid-credential-issuer.$TENANT.1.json | jq -r '.credential_issuer'`
+CREDENTIALENDPOINT=`cat $DIR/openid-credential-issuer.$TENANT.1.json | jq -r '.credential_endpoint'`
+NONCEENDPOINT=`cat $DIR/openid-credential-issuer.$TENANT.1.json | jq -r '.nonce_endpoint'`
+
+if [ ! "x$ISSUERURL" = "xhttps://$URL/$TENANT" ]
+then
+    echo "ERROR: $TENANT Issuer url from OpenID4VCI configuration ('$ISSUERURL') does not match expected url https://$URL/$TENANT"
+    exit 1
+fi
+
+if [ "x$CREDENTIALENDPOINT" = "x" ]
+then
+    echo "ERROR: $TENANT OpenID4VCI configuration does not publish a credential_endpoint"
+    exit 1
+fi
+
+if [ "x$NONCEENDPOINT" = "x" ]
+then
+    echo "ERROR: $TENANT OpenID4VCI configuration does not publish a nonce endpoint"
+    exit 1
+fi
+
+echo "Checking openid configuration for $TENANT"
 curl -s https://$URL/$TENANT/.well-known/openid-configuration > $DIR/openid-configuration.$TENANT.1.json
 curl -s https://$URL/.well-known/openid-configuration/$TENANT > $DIR/openid-configuration.$TENANT.2.json
 diff -q $DIR/openid-credential-issuer.$TENANT.1.json $DIR/openid-credential-issuer.$TENANT.2.json >/dev/null 2>&1
 if [ "x$?" = "x1" ]
 then
     echo "ERROR: $TENANT openid-configuration data mismatch"
+    exit 1
 fi
 
+echo "Checking OAuth2 configuration for $TENANT"
 curl -s https://$URL/$TENANT/.well-known/oauth-authorization-server > $DIR/oauth-authorization-server.$TENANT.1.json
 curl -s https://$URL/.well-known/oauth-authorization-server/$TENANT > $DIR/oauth-authorization-server.$TENANT.2.json
 diff -q $DIR/openid-credential-issuer.$TENANT.1.json $DIR/openid-credential-issuer.$TENANT.2.json >/dev/null 2>&1
 if [ "x$?" = "x1" ]
 then
     echo "ERROR: $TENANT oauth-authorization-server data mismatch"
+    exit 1
+fi
+
+ISSUERURL=`cat $DIR/oauth-authorization-server.$TENANT.1.json | jq -r '.issuer'`
+TOKENENDPOINT=`cat $DIR/oauth-authorization-server.$TENANT.1.json | jq -r '.token_endpoint'`
+
+if [ ! "x$ISSUERURL" = "xhttps://$URL/$TENANT" ]
+then
+    echo "ERROR: $TENANT Issuer url from OAuth configuration ('$ISSUERURL') does not match expected url https://$URL/$TENANT"
+    exit 1
+fi
+
+if [ "x$TOKENENDPOINT" = "x" ]
+then
+    echo "ERROR: $TENANT OAuth configuration does not publish a token endpoint"
+    exit 1
 fi
 
 IFS=',' read -ra credentials <<< "$CREDS"
 for credential in ${credentials[@]}
 do
     IFS=':' read -ra elements <<< "$credential"
-    echo "Testing ${elements[0]} of type ${elements[1]}"
+    echo "Testing credential ${elements[0]} of type ${elements[1]}"
     CRED=${elements[0]}
 
-    DATA=`cat ${CRED}.json | jq '.data'`
-    TYPE=`cat ${CRED}.json | jq '.type'`
+    /bin/bash ./get_credential $TENANT $CRED $DIR $SECRET
+    if [ "x$?" = "x1" ]
+    then
+        exit 1
+    fi
 
-    echo "{
-        \"grants\": {
-            \"urn:ietf:params:oauth:grant-type:pre-authorized_code\": {
-                \"pre-authorized_code\": \"generate\"
-            }
-        },
-        \"credentials\": [$TYPE],
-        \"credentialDataSupplierInput\": $DATA
-    }" | jq '.' > $DIR/${TENANT}_${CRED}_offer.json
-    FILE=`realpath $DIR/${TENANT}_${CRED}_offer.json`
-    yarn --cwd ../.. do create:offer -u https://$URL/$TENANT -s "$SECRET" -d $FILE > $DIR/${TENANT}_${CRED}_offer_response.json
-    
+    /bin/bash ./check_credential $TENANT $CRED $DIR ${elements[1]} $URL
+    if [ "x$?" = "x1" ]
+    then
+        exit 1
+    fi
 done

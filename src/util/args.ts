@@ -50,7 +50,8 @@ export const getArgs = (opts:Option[]) => {
                                 currentOpt = opt;
                             }
                             else {
-                                retval.arguments[argKey] = true;
+                                retval.arguments['' + opt.name] = true;
+                                currentOpt = null;
                             }
                             wasFound = true;
                         }
