@@ -16,4 +16,12 @@ DIR="./test.$TESTID"
 yarn --cwd ../.. do create:key -t Secp256r1 > $DIR/key.json
 
 echo "Checking MBOB"
-./check_issuer $TESTID $ISSUER mbob $ISSUER_MBOB_TOKEN "ABC:vc2"
+./check_issuer $TESTID $ISSUER mbob $ISSUER_MBOB_TOKEN "ABC,AEC,EEC,SC,SCC,SDC,OBC"
+./check_issuer $TESTID $ISSUER hbot $ISSUER_HBOT_TOKEN "ABC,AEC,EEC,SC,SCC,SDC,OBC"
+./check_issuer $TESTID $ISSUER uvh $ISSUER_UVH_TOKEN "ABC,AEC,EEC,SC,SCC,SDC,OBC"
+./check_issuer $TESTID $ISSUER tun $ISSUER_TUN_TOKEN "ABC"
+./check_issuer $TESTID $ISSUER epi $ISSUER_EPI_TOKEN "ABC"
+
+#./check_issuer $TESTID $ISSUER nlgov $ISSUER_NLGOV_TOKEN "ABC"
+#./check_issuer $TESTID $ISSUER nbgov $ISSUER_NBGOV_TOKEN "ABC"
+#./check_issuer $TESTID $ISSUER sandbox $ISSUER_SANDBOX_TOKEN "ABC"

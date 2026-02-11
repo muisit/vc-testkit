@@ -77,11 +77,9 @@ then
 fi
 
 IFS=',' read -ra credentials <<< "$CREDS"
-for credential in ${credentials[@]}
+for CRED in ${credentials[@]}
 do
-    IFS=':' read -ra elements <<< "$credential"
-    echo "Testing credential ${elements[0]} of type ${elements[1]}"
-    CRED=${elements[0]}
+    echo "Testing credential $CRED"
 
     /bin/bash ./get_credential $TENANT $CRED $DIR $SECRET
     if [ "x$?" = "x1" ]
@@ -89,7 +87,7 @@ do
         exit 1
     fi
 
-    /bin/bash ./check_credential $TENANT $CRED $DIR ${elements[1]} $URL
+    /bin/bash ./check_credential $TENANT $CRED $DIR $URL
     if [ "x$?" = "x1" ]
     then
         exit 1
