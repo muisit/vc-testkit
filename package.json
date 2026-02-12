@@ -11,7 +11,8 @@
     "node": ">= 21.0.0"
   },
   "scripts": {
-    "do": "tsx src/index.ts"
+    "do": "tsx src/index.ts",
+    "test": "vitest run"
   },
   "yarn": {
     "args": [
@@ -24,8 +25,10 @@
     "@openid4vc/openid4vp": "^0.4.4",
     "@types/node": "^25.0.10",
     "debug": "^4.4.3",
+    "dotenv-flow": "^4.1.0",
     "supports-color": "^10.2.2",
     "ts-node": "^10.9.2",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "vitest": "^4.0.18"
   }
 }
