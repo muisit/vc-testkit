@@ -1,15 +1,15 @@
 import Debug from 'debug';
 const debug = Debug('oid4vci:createproof');
 
-import fs from 'fs';
+import { readObject } from '../util/readObject';
 import { Factory } from '@muisit/cryptokey';
 import { JWT } from '@muisit/simplejwt';
 
-export async function createProof(key:string, nonce:string, issuer:string)
+export async function createProof(key:string|object, nonce:string, issuer:string)
 {
     debug("creating proof for nonce", nonce);
 
-    const keyfile = JSON.parse(fs.readFileSync(key, 'utf8').toString().trim());
+    const keyfile = readObject(key);
     const ckey = await Factory.createFromType(keyfile.type, keyfile.privateKey);
     const did = await Factory.toDIDJWK(ckey);
     const now = Date.now();

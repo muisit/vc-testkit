@@ -1,12 +1,12 @@
 import Debug from 'debug';
 const debug = Debug('oid4vci:gettoken');
 
-import fs from 'fs';
+import { readObject } from '../util/readObject';
 
-export async function getToken(url:string, data:string)
+export async function getToken(url:string, data:string|object)
 {
     debug("receiving token from ", url);
-    const content = JSON.parse(fs.readFileSync(data, 'utf8').toString().trim());
+    const content = readObject(data);
     debug(content);
     if (content.authorization_details) {
         content.authorization_details = JSON.stringify(content.authorization_details);

@@ -1,12 +1,12 @@
 import Debug from 'debug';
 const debug = Debug('oid4vci:getcredential');
 
-import fs from 'fs';
+import { readObject } from '../util/readObject';
 
-export async function getCredential(url:string, secret:string, data:string)
+export async function getCredential(url:string, secret:string, data:string|object)
 {
     debug("receiving credential from ", url);
-    const content = JSON.parse(fs.readFileSync(data, 'utf8').toString().trim());
+    const content = readObject(data);
     debug(content);
     const result = await fetch(
         url,

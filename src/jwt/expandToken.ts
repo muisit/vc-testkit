@@ -1,13 +1,13 @@
 import Debug from 'debug';
 const debug = Debug('jwt:expand');
 
-import fs from 'fs';
+import { readObject } from '../util/readObject';
 import { JWT } from '@muisit/simplejwt';
 
 export async function expandToken(file:string)
 {
     debug("expanding file", file);
-    const request = fs.readFileSync(file, 'utf8').toString().trim();
+    const request = readObject(file);
 
     const jwt = JWT.fromToken(request);
 

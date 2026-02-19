@@ -1,12 +1,12 @@
 import Debug from 'debug';
 const debug = Debug('oid4vci:createoffer');
 
-import fs from 'fs';
+import { readObject } from '../util/readObject';
 
-export async function createOffer(url:string, secret:string, data:string)
+export async function createOffer(url:string, secret:string, data:string|object)
 {
     debug("creating credential offer at ", url);
-    const content = JSON.stringify(JSON.parse(fs.readFileSync(data, 'utf8').toString().trim()));
+    let content = JSON.stringify(readObject(data));
     debug(content);
     const result = await fetch(
         url + '/api/create-offer',

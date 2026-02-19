@@ -3,7 +3,7 @@ import { test as baseTest } from 'vitest'
 let key:any = null;
 
 import { createKey } from '../src/identifiers/createKey';
-export const context = baseTest.extend({
+export const test = baseTest.extend({
   // https://vitest.dev/guide/test-context.html#fixture-initialization
   key: async ({}, use) => {
     if (key === null) {
