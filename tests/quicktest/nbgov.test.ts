@@ -1,0 +1,47 @@
+import {config as dotenvConfig} from "dotenv-flow";
+dotenvConfig();
+
+import { beforeAll, describe, it } from "vitest";
+import { fetchMetadata, testMetadata } from "../lib/metadata";
+import { fetchOIDConfig, testOIDConfig } from "../lib/openidconfiguration";
+import { fetchOAuthConfig, testOAuthConfig } from "../lib/oauthconfiguration";
+import { PID } from "./credentials";
+import { credentialTest } from "../lib/credentialtest";
+import { suiteContains, testDisabled } from "../lib/suite";
+
+describe('Naboo Government', () => {
+    let metadata: any;
+    let openidconfig: any;
+    let oauthconfig: any;
+  
+    if (!suiteContains('quicktest') || testDisabled('ISSUER_NBGOV_TOKEN')) {
+        it.skip("disabled");
+        return;
+    }
+
+    const baseurl = process.env.ISSUER;
+    const tenant = 'nbgov';
+    const token = process.env.ISSUER_NBGOV_TOKEN;
+
+    beforeAll(async () => {
+        metadata = await fetchMetadata(baseurl, tenant);
+        openidconfig = await fetchOIDConfig(baseurl, tenant);
+        oauthconfig = await fetchOAuthConfig(baseurl, tenant);
+    });
+  
+    testMetadata(baseurl, tenant, () => metadata);
+    testOIDConfig(baseurl, tenant, () => { return { metadata, openidconfig};});
+    testOAuthConfig(baseurl, tenant, () => { return { metadata, oauthconfig};});
+
+    const cases = [
+      { name: tenant + ' PID', input: { credential: PID } },
+    ];
+  
+    for (const row of cases) {
+        credentialTest(row.name, baseurl, tenant, token, () => { return {
+            metadata,
+            oauthconfig,
+            credential: row.input.credential
+        }; });
+    }
+});

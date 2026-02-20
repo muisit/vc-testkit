@@ -13,6 +13,7 @@ The toolset also contains a `vitest` unit test environment for automated testing
 The current test environment supports the following suites:
 
 - `proeftuin`: testing an installment of the EduWallet 'Proeftuin'
+- `quicktest`: test on all 'Proeftuin' issuers for only the `AcademicBaseCredential`
 
 ## Environment Options
 

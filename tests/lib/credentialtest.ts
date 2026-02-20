@@ -9,7 +9,7 @@ export function credentialTest(name: string, baseurl:string, tenant:string, toke
     test(name, async ({key}) => {
         const { metadata, oauthconfig, credential } = mdcb();
 
-        const agenturl = `https://${baseurl}/${tenant}`;
+        const agenturl = metadata.credential_issuer;
         const createOfferResponse = await validateCreateOffer(agenturl, token, credential);
         if (!createOfferResponse.uri) {
             return;
@@ -297,6 +297,7 @@ async function validateCreateOffer(url, token, credential)
         data.credentialDataSupplierInput = credential.data;
     }
     const offerResponse = await createOffer(url, token, data);
+    console.log(url, data, offerResponse);
     expect(offerResponse.uri).toBeDefined();
     expect(offerResponse.uri.startsWith('openid-credential-offer')).toBeTruthy();
     expect(offerResponse.uri).toContain('credential_offer_uri='); // we always use offer-by-reference
