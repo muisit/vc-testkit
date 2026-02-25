@@ -4,6 +4,7 @@ import { createOffer, createProof, getCredential, getOffer, getToken } from "../
 import { getJson } from "../../src/util/getJson";
 import { JWT } from "@muisit/simplejwt";
 import { Factory } from "@muisit/cryptokey";
+import { featureEnabled } from "./suite";
 
 export function credentialTest(name: string, baseurl:string, tenant:string, token: string, mdcb:Function) {
     test(name, async ({key}) => {
@@ -106,7 +107,9 @@ async function validateVCDM1(token:string, credential:any, key:any)
     expect(ckey2.exportPublicKey()).toBe(ckey.exportPublicKey());
 
     expect(jwt.header.kid).toBeDefined();
-    expect(jwt.header.kid).toContain('#0'); // we only ever use did:web or did:jwk
+    if (featureEnabled("fullkid")) {
+        expect(jwt.header.kid).toContain('#0'); // we only ever use did:web or did:jwk
+    }
 
     if (credential.data) {
         expect(jwt.payload.vc.credentialSubject).toBeDefined();
@@ -176,7 +179,9 @@ async function validateVCDM2(token:string, credential:any, key:any)
     expect(ckey2.exportPublicKey()).toBe(ckey.exportPublicKey());
 
     expect(jwt.header.kid).toBeDefined();
-    expect(jwt.header.kid).toContain('#0'); // we only ever use did:web or did:jwk
+    if (featureEnabled("fullkid")) {
+        expect(jwt.header.kid).toContain('#0'); // we only ever use did:web or did:jwk
+    }
 
     if (credential.data) {
         expect(jwt.payload.credentialSubject).toBeDefined();
@@ -297,7 +302,6 @@ async function validateCreateOffer(url, token, credential)
         data.credentialDataSupplierInput = credential.data;
     }
     const offerResponse = await createOffer(url, token, data);
-    console.log(url, data, offerResponse);
     expect(offerResponse.uri).toBeDefined();
     expect(offerResponse.uri.startsWith('openid-credential-offer')).toBeTruthy();
     expect(offerResponse.uri).toContain('credential_offer_uri='); // we always use offer-by-reference

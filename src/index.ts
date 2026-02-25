@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug("main:main");
+const debug = Debug("testkit:main");
 
 import { registerAS } from "./as/registerAS";
 import { createKey } from "./identifiers/createKey";

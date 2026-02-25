@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug("register:issuer");
+const debug = Debug("testkit:issuer");
 
 import fs from 'fs';
 

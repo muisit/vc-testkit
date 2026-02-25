@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug('jwt:expand');
+const debug = Debug('testkit:jwtexpand');
 
 import { readObject } from '../util/readObject';
 import { JWT } from '@muisit/simplejwt';

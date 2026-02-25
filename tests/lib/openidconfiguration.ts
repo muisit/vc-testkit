@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { test } from "../context";
+import { featureEnabled } from "./suite";
 
 export async function fetchOIDConfig(baseurl:string, tenant:string) {
     const url = `https://${baseurl}/${tenant}/.well-known/openid-configuration`;
@@ -27,24 +28,30 @@ export function testOIDConfig(baseurl:string, tenant:string, mdcb:Function) {
         }
     });
 
-    test(tenant + " openid-configuration on tenant domain", async () => {
-        const { metadata, openidconfig } = mdcb();
-        if (!metadata.authorization_servers) {
-            const url = `https://${tenant}.${baseurl}/.well-known/openid-configuration`;
-            const data = await fetch(url).then((r) => r.json()).catch(() => undefined);
+    if (featureEnabled("domaintenant")) {
+        test(tenant + " openid-configuration on tenant domain", async () => {
+            const { metadata, openidconfig } = mdcb();
+            if (!metadata.authorization_servers) {
+                const url = `https://${tenant}.${baseurl}/.well-known/openid-configuration`;
+                const data = await fetch(url).then((r) => r.json()).catch(() => undefined);
 
-            // if we use tenant-domain configurations
-            if (data) {
+                // if we use tenant-domain configurations
+                expect(data).toBeDefined();
                 expect(JSON.stringify(data)).toBe(JSON.stringify(openidconfig));
                 // then the issuer should be the tenant version
                 expect(openidconfig.issuer).toBe(`https://${tenant}.${baseurl}`);
                 expect(openidconfig.token_endpoint).toBe(`https://${tenant}.${baseurl}/token`);
             }
-            else {
+        });
+    }
+    else {
+        test(tenant + " openid-configuration on tenant domain", async () => {
+            const { metadata, openidconfig } = mdcb();
+            if (!metadata.authorization_servers) {
                 // not using tenant domains
                 expect(openidconfig.issuer).toBe(`https://${baseurl}/${tenant}`);
                 expect(openidconfig.token_endpoint).toBe(`https://${baseurl}/${tenant}/token`);
             }
-        }
-    });
+        });        
+    }
 }

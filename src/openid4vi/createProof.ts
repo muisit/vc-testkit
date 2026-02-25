@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug('oid4vci:createproof');
+const debug = Debug('testkit:oid4vcicreateproof');
 
 import { readObject } from '../util/readObject';
 import { Factory } from '@muisit/cryptokey';

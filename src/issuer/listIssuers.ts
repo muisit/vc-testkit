@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug('list:issuers');
+const debug = Debug('testkit:issuers');
 
 
 export async function listIssuers(url:string, secret:string)

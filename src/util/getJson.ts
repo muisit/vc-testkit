@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug('get:json');
+const debug = Debug('testkit:getjson');
 
 export async function getJson(url:string, secret?:string, method?:string)
 {

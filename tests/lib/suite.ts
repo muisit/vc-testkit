@@ -11,3 +11,9 @@ export function testDisabled(key:string)
     }
     return true;
 }
+
+export function featureEnabled(key:string)
+{
+    const features = (process.env.FEATURES ?? "").split(',').map((i) => i.trim());
+    return features.includes(key);
+}

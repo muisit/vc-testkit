@@ -8,7 +8,7 @@ import { fetchOIDConfig, testOIDConfig } from "../lib/openidconfiguration";
 import { fetchOAuthConfig, testOAuthConfig } from "../lib/oauthconfiguration";
 import { ABC, AEC, EEC, SC, SCC, SDC, OBC } from "./credentials";
 import { credentialTest } from "../lib/credentialtest";
-import { suiteContains, testDisabled } from "../lib/suite";
+import { featureEnabled, suiteContains, testDisabled } from "../lib/suite";
 
 describe('HBOT', () => {
     let metadata: any;
@@ -34,6 +34,7 @@ describe('HBOT', () => {
     testOIDConfig(baseurl, tenant, () => { return { metadata, openidconfig};});
     testOAuthConfig(baseurl, tenant, () => { return { metadata, oauthconfig};});
 
+    const canTestOBC=featureEnabled('supportsobc');
     const cases = [
       { name: tenant + ' ABC', input: { credential: ABC } },
       { name: tenant + ' AEC', input: { credential: AEC } },
@@ -41,7 +42,7 @@ describe('HBOT', () => {
       { name: tenant + ' SC', input: { credential: SC } },
       { name: tenant + ' SCC', input: { credential: SCC } },
       { name: tenant + ' SDC', input: { credential: SDC } },
-      { name: tenant + ' OBC', input: { credential: OBC } },
+      ...(canTestOBC ? [{ name: tenant + ' OBC', input: { credential: OBC } }] : []),
     ];
   
     for (const row of cases) {

@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug('restart:api');
+const debug = Debug('testkit:api');
 
 export async function restart(url:string, secret:string)
 {

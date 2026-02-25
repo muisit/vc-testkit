@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug('quote:json');
+const debug = Debug('testkit:quotejson');
 
 import fs from 'fs';
 

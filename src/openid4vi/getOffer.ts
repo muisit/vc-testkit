@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug('oid4vci:getoffer');
+const debug = Debug('testkit:oid4vcigetoffer');
 
 import { getJson } from '../util/getJson';
 

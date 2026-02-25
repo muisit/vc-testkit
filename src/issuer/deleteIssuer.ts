@@ -1,6 +1,5 @@
 import Debug from 'debug';
-const debug = Debug('delete:issuer');
-
+const debug = Debug('testkit:issuer');
 
 export async function deleteIssuer(url:string, secret:string, id:string)
 {

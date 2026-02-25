@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug('oid4vci:createoffer');
+const debug = Debug('testkit:oid4vcicreateoffer');
 
 import { readObject } from '../util/readObject';
 

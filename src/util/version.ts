@@ -1,5 +1,5 @@
 import Debug from 'debug';
-const debug = Debug('version:api');
+const debug = Debug('testkit:api');
 
 export async function version(url:string)
 {
